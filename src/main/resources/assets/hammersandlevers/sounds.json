@@ -1,0 +1,15 @@
+{
+  "henry_fire": {
+    "category": "item",
+    "subtitle": "hammersandlevers.weapon.henry_rifle_fire",
+    "sounds": ["hammersandlevers:"]
+  },
+
+  "henry_load": {
+
+  },
+
+  "henry_lever": {
+
+  }
+}

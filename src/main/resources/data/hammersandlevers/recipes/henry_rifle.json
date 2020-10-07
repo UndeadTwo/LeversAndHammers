@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "group": "weapons",
+  "pattern" : [
+    "I  ",
+    " G ",
+    "  W"
+  ],
+  "key": {
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "G": {
+      "item": "minecraft:gold_ingot"
+    },
+    "W": {
+      "item": "minecraft:planks"
+    },
+    "result": "hammersandlevers:henry_rifle"
+  }
+}
