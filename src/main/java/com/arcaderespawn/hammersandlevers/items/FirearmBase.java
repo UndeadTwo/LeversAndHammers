@@ -3,15 +3,12 @@ package com.arcaderespawn.hammersandlevers.items;
 import com.arcaderespawn.hammersandlevers.HammersAndLevers;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
-import net.minecraft.enchantment.InfinityEnchantment;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.ProjectileHelper;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.particles.IParticleData;
-import net.minecraft.particles.ParticleTypes;
 import net.minecraft.particles.RedstoneParticleData;
 import net.minecraft.tags.ITag;
 import net.minecraft.tags.ItemTags;
@@ -51,44 +48,77 @@ public class FirearmBase extends Item {
         return compoundnbt.getByte("AmmoCount");
     }
 
-    private static byte getMaxAmmoCount() {
-        return 6;
+    public static String getAmmoString(ItemStack stack) {
+        return String.valueOf(getAmmoCount(stack));
     }
 
-    protected void doShoot(World worldIn, PlayerEntity playerIn, ItemStack stackIn) {
-        doShoot(worldIn, playerIn, stackIn, 0.0f, 0.0f);
+    public static void setCanFire(ItemStack stack, boolean canFire) {
+        CompoundNBT compoundnbt = stack.getOrCreateTag();
+        compoundnbt.putBoolean("canFire", canFire);
+    }
+
+    public static boolean getCanFire(ItemStack stack) {
+        CompoundNBT compoundnbt = stack.getOrCreateTag();
+        return compoundnbt.getBoolean("canFire");
+    }
+
+    public static boolean readyToFire(ItemStack stack) {
+        return getCanFire(stack) && getAmmoCount(stack) > 0;
+    }
+
+    private static byte getMaxAmmoCount() {
+        return 8;
+    }
+
+    protected ActionResult<ItemStack> doReload(PlayerEntity playerIn, ItemStack weapon, ItemStack ammo, boolean doNotConsumeAmmoFlag)
+    {
+        if(!doNotConsumeAmmoFlag)
+        {
+            ammo.shrink(1);
+
+            if(ammo.isEmpty()) playerIn.inventory.deleteStack(ammo);
+        }
+
+        setAmmoCount(weapon, (byte)(getAmmoCount(weapon) + 1));
+        return new ActionResult<ItemStack>(ActionResultType.SUCCESS, weapon);
+    }
+
+    protected ActionResult<ItemStack> fireWeaponSucceed(World worldIn, PlayerEntity playerIn, ItemStack weapon, ItemStack ammo, boolean doNotConsumeAmmoFlag)
+    {
+        doShoot(worldIn, playerIn, weapon);
+        setAmmoCount(weapon,(byte)(getAmmoCount(weapon) - 1));
+        return new ActionResult<ItemStack>(ActionResultType.CONSUME, weapon);
+    }
+
+    protected ActionResult<ItemStack> fireWeaponFailed(World worldIn, PlayerEntity playerIn, ItemStack weapon, ItemStack ammo, boolean doNotConsumeAmmoFlag)
+    {
+        return new ActionResult<ItemStack>(ActionResultType.PASS, weapon);
     }
 
     @Override
     public ActionResult<ItemStack> onItemRightClick(World worldIn, PlayerEntity playerIn, Hand handIn) {
-        ItemStack stack = playerIn.getHeldItem(handIn);
+        ItemStack weapon = playerIn.getHeldItem(handIn);
         ItemStack ammo = this.performInventoryAmmoSearch(playerIn);
 
         boolean doNotConsumeAmmoFlag =
-                (playerIn.isCreative() || EnchantmentHelper.getEnchantmentLevel(Enchantments.INFINITY, stack) > 0)
+                (playerIn.isCreative() || EnchantmentHelper.getEnchantmentLevel(Enchantments.INFINITY, weapon) > 0)
                         && !ammo.isEmpty();
 
-        if(playerIn.isSneaking() && !ammo.isEmpty() && getAmmoCount(stack) < getMaxAmmoCount())
+        if(playerIn.isSneaking() && !ammo.isEmpty() && getAmmoCount(weapon) < getMaxAmmoCount())
         {
-            if(!doNotConsumeAmmoFlag)
-            {
-                ammo.shrink(1);
-
-                if(ammo.isEmpty()) playerIn.inventory.deleteStack(ammo);
-            }
-
-            setAmmoCount(stack, (byte)(getAmmoCount(stack) + 1));
-            return new ActionResult<ItemStack>(ActionResultType.SUCCESS, stack);
+            return doReload(playerIn, weapon, ammo, doNotConsumeAmmoFlag);
         }
 
-        if(getAmmoCount(stack) > 0)
+        if(readyToFire(weapon))
         {
-            doShoot(worldIn, playerIn, stack);
-            setAmmoCount(stack, (byte)(getAmmoCount(stack) - 1));
-            return new ActionResult<ItemStack>(ActionResultType.CONSUME, stack);
+            fireWeaponSucceed(worldIn, playerIn, weapon, ammo, doNotConsumeAmmoFlag);
+        }
+        else
+        {
+            fireWeaponFailed(worldIn, playerIn, weapon, ammo, doNotConsumeAmmoFlag);
         }
 
-        return new ActionResult<ItemStack>(ActionResultType.PASS, stack);
+        return new ActionResult<>(ActionResultType.PASS, weapon);
     }
 
     @Override
@@ -101,28 +131,35 @@ public class FirearmBase extends Item {
         return 1;
     }
 
-    protected void doShoot(World worldIn, PlayerEntity playerIn, ItemStack stackIn, float yawSkew, float pitchSkew) {
-        if(getAmmoCount(stackIn) > 0) {
-            setAmmoCount(stackIn,(byte)(getAmmoCount(stackIn) - 1));
+    protected void doShoot(World worldIn, PlayerEntity playerIn, ItemStack stackIn, float pitchSkew, float yawSkew) {
+        RayTraceResult result = fireHitRay(worldIn, playerIn, stackIn, yawSkew, pitchSkew);
 
-            RayTraceResult result = fireShootRay(worldIn, playerIn, stackIn, yawSkew, pitchSkew);
-
-            if(result instanceof EntityRayTraceResult)
+        LOGGER.debug(result);
+        if(result instanceof EntityRayTraceResult)
+        {
+            if(((EntityRayTraceResult) result).getEntity() instanceof LivingEntity)
             {
-                if(((EntityRayTraceResult) result).getEntity() instanceof LivingEntity)
-                {
-                    ((LivingEntity)((EntityRayTraceResult) result).getEntity()).attackEntityFrom(damageSource, damage);
-                }
+                ((LivingEntity)((EntityRayTraceResult) result).getEntity()).attackEntityFrom(damageSource, damage);
             }
-
-            worldIn.addParticle(RedstoneParticleData.REDSTONE_DUST, result.getHitVec().x, result.getHitVec().y, result.getHitVec().z, 0.2, 0.2, 0.2);
         }
+
+        worldIn.addParticle(RedstoneParticleData.REDSTONE_DUST, result.getHitVec().x, result.getHitVec().y, result.getHitVec().z, 0.2, 0.2, 0.2);
     }
 
-    protected RayTraceResult fireShootRay(World worldIn, PlayerEntity playerIn, ItemStack stackIn, float yawSkew, float pitchSkew)
+    protected void doShoot(World worldIn, PlayerEntity playerIn, ItemStack stackIn) {
+        doShoot(worldIn, playerIn, stackIn, 0.0f, 0.0f);
+    }
+
+    protected RayTraceResult fireHitRay(World worldIn, PlayerEntity playerIn, ItemStack stackIn,
+                                        float yawSkew, float pitchSkew)
     {
         Vector3d startVec = playerIn.getEyePosition(0.0f);
-        Vector3d stopVec = startVec.add(playerIn.getLookVec().add(Vector3d.fromPitchYaw(pitchSkew, yawSkew)).scale(FIREARM_MAX_RANGE));
+        Vector3d stopVec = playerIn.getEyePosition(0.0f)
+                .add(getVectorForRotation(playerIn.rotationPitch + pitchSkew, playerIn.rotationYaw + yawSkew)
+                .scale(FIREARM_MAX_RANGE));
+
+        LOGGER.debug(startVec);
+        LOGGER.debug(stopVec);
 
         EntityRayTraceResult result = ProjectileHelper.rayTraceEntities(worldIn, playerIn,
                 startVec,
@@ -137,6 +174,16 @@ public class FirearmBase extends Item {
         } else {
             return worldResult;
         }
+    }
+
+    protected final Vector3d getVectorForRotation(float pitch, float yaw) {
+        float pitchRadians = pitch * ((float)Math.PI / 180F);
+        float yawRadians = -yaw * ((float)Math.PI / 180F);
+        float yawCos = MathHelper.cos(yawRadians);
+        float yawSin = MathHelper.sin(yawRadians);
+        float pitchCos = MathHelper.cos(pitchRadians);
+        float pitchSin = MathHelper.sin(pitchRadians);
+        return new Vector3d((double)(yawSin * pitchCos), (double)(-pitchSin), (double)(yawCos * pitchCos));
     }
 
     protected ItemStack performInventoryAmmoSearch(PlayerEntity playerIn)
