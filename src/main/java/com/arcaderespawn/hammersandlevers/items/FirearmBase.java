@@ -66,8 +66,8 @@ public class FirearmBase extends Item {
         return getCanFire(stack) && getAmmoCount(stack) > 0;
     }
 
-    private static byte getMaxAmmoCount() {
-        return 8;
+    protected byte getMaxAmmoCount() {
+        return 6;
     }
 
     protected ActionResult<ItemStack> doReload(PlayerEntity playerIn, ItemStack weapon, ItemStack ammo, boolean doNotConsumeAmmoFlag)
@@ -104,21 +104,19 @@ public class FirearmBase extends Item {
                 (playerIn.isCreative() || EnchantmentHelper.getEnchantmentLevel(Enchantments.INFINITY, weapon) > 0)
                         && !ammo.isEmpty();
 
-        if(playerIn.isSneaking() && !ammo.isEmpty() && getAmmoCount(weapon) < getMaxAmmoCount())
+        if(playerIn.isSneaking() && !ammo.isEmpty() && getAmmoCount(weapon) < this.getMaxAmmoCount())
         {
             return doReload(playerIn, weapon, ammo, doNotConsumeAmmoFlag);
         }
 
         if(readyToFire(weapon))
         {
-            fireWeaponSucceed(worldIn, playerIn, weapon, ammo, doNotConsumeAmmoFlag);
+            return this.fireWeaponSucceed(worldIn, playerIn, weapon, ammo, doNotConsumeAmmoFlag);
         }
         else
         {
-            fireWeaponFailed(worldIn, playerIn, weapon, ammo, doNotConsumeAmmoFlag);
+            return this.fireWeaponFailed(worldIn, playerIn, weapon, ammo, doNotConsumeAmmoFlag);
         }
-
-        return new ActionResult<>(ActionResultType.PASS, weapon);
     }
 
     @Override

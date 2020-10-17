@@ -9,20 +9,28 @@ import net.minecraft.world.World;
 
 import java.util.function.Predicate;
 
-public class HenryRifle extends RifleBase {
+public class HenryRifle extends FirearmBase {
     public HenryRifle(Properties properties) {
         super(properties);
 
         this.setRegistryName("henry_rifle");
     }
 
-    private static byte getMaxAmmoCount() {
+
+    @Override
+    protected byte getMaxAmmoCount() {
         return 15;
     }
 
     @Override
     protected Predicate<ItemStack> getInventoryAmmoSearchPredicate() {
         return BRASS_RIFLE_CARTRIDGES;
+    }
+
+    @Override
+    protected ActionResult<ItemStack> fireWeaponSucceed(World worldIn, PlayerEntity playerIn, ItemStack weapon, ItemStack ammo, boolean doNotConsumeAmmoFlag) {
+        setCanFire(weapon, false);
+        return super.fireWeaponSucceed(worldIn, playerIn, weapon, ammo, doNotConsumeAmmoFlag);
     }
 
     @Override

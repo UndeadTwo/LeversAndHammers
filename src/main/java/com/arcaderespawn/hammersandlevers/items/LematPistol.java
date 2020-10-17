@@ -9,10 +9,8 @@ import net.minecraft.world.World;
 
 import java.util.function.Predicate;
 
-public class LematPistol extends PistolBase
+public class LematPistol extends FirearmBase
 {
-
-
     public LematPistol(Properties properties)
     {
         super(properties);
@@ -20,7 +18,7 @@ public class LematPistol extends PistolBase
         this.setRegistryName("lemat_pistol");
     }
 
-    private static byte getMaxAmmoCount() {
+    protected byte getMaxAmmoCount() {
         return 6;
     }
 
