@@ -2,6 +2,7 @@ package com.arcaderespawn.hammersandlevers.client;
 
 import com.arcaderespawn.hammersandlevers.HammersAndLevers;
 import com.arcaderespawn.hammersandlevers.items.FirearmBase;
+import com.arcaderespawn.hammersandlevers.items.LematPistol;
 import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.platform.GlStateManager;
 import net.minecraft.client.Minecraft;
@@ -68,10 +69,15 @@ public final class HandlerClient {
 
                     String count = ((FirearmBase)stack.getItem()).getAmmoString(stack);
 
+                    int color = 0xFF0000;
+
+                    if(stack.getItem() instanceof LematPistol)
+                        color = LematPistol.getAmmoColor(stack);
+
                     MatrixStack matrixstack = new MatrixStack();
                     matrixstack.translate(0.0D, 0.0D, (double) (200.0F));
                     IRenderTypeBuffer.Impl irendertypebuffer$impl = IRenderTypeBuffer.getImpl(Tessellator.getInstance().getBuffer());
-                    fr.renderString(count, (float) (x + 19 - 2 - fr.getStringWidth(count)), (float) (y + 6 + 3), 0xFF0000, true, matrixstack.getLast().getMatrix(), irendertypebuffer$impl, false, 0, 15728880);
+                    fr.renderString(count, (float) (x + 19 - 2 - fr.getStringWidth(count)), (float) (y + 6 + 3), color, true, matrixstack.getLast().getMatrix(), irendertypebuffer$impl, false, 0, 15728880);
                     irendertypebuffer$impl.finish();
                 }
             }

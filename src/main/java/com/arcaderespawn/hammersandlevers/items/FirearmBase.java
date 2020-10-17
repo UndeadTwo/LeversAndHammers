@@ -22,13 +22,7 @@ import org.apache.logging.log4j.Logger;
 import java.util.function.Predicate;
 
 public class FirearmBase extends Item {
-    public static final ITag.INamedTag<Item> rifleCartridge = ItemTags.createOptional(new ResourceLocation(HammersAndLevers.MODID, "rifle_cartridge"));
-    public static final ITag.INamedTag<Item> pistolCartridge = ItemTags.createOptional(new ResourceLocation(HammersAndLevers.MODID,"pistol_cartridge"));
-    public static final ITag.INamedTag<Item> shotgunCartridge = ItemTags.createOptional(new ResourceLocation(HammersAndLevers.MODID,"shotgun_cartridge"));
-
-    protected Integer internalMagazineSize;
-
-    private static final float FIREARM_MAX_RANGE = 2048.0f;
+    private static final float FIREARM_MAX_RANGE = 128.0f;
     protected static final Logger LOGGER = LogManager.getLogger();
 
     protected DamageSource damageSource = DamageSource.MAGIC;
@@ -38,7 +32,7 @@ public class FirearmBase extends Item {
         super(properties);
     }
 
-    private static void setAmmoCount(ItemStack stack, Byte itemCount) {
+    protected static void setAmmoCount(ItemStack stack, Byte itemCount) {
         CompoundNBT compoundnbt = stack.getOrCreateTag();
         compoundnbt.putByte("AmmoCount", itemCount);
     }
@@ -48,15 +42,16 @@ public class FirearmBase extends Item {
         return compoundnbt.getByte("AmmoCount");
     }
 
-    public static String getAmmoString(ItemStack stack) {
+    public String getAmmoString(ItemStack stack) {
         return String.valueOf(getAmmoCount(stack));
     }
 
-    public static void setCanFire(ItemStack stack, boolean canFire) {
+    protected static void setCanFire(ItemStack stack, boolean canFire) {
         CompoundNBT compoundnbt = stack.getOrCreateTag();
         compoundnbt.putBoolean("canFire", canFire);
     }
 
+    //Effectively used as "is hammer cocked?"
     public static boolean getCanFire(ItemStack stack) {
         CompoundNBT compoundnbt = stack.getOrCreateTag();
         return compoundnbt.getBoolean("canFire");
@@ -141,6 +136,7 @@ public class FirearmBase extends Item {
             }
         }
 
+        LOGGER.debug(result.getHitVec());
         worldIn.addParticle(RedstoneParticleData.REDSTONE_DUST, result.getHitVec().x, result.getHitVec().y, result.getHitVec().z, 0.2, 0.2, 0.2);
     }
 
@@ -205,12 +201,9 @@ public class FirearmBase extends Item {
     }
 
     protected Predicate<ItemStack> getInventoryAmmoSearchPredicate() {
+        LOGGER.debug("Tried to find ammunition w/ Default Predicate");
         return RIFLE_CARTRIDGES.or(PISTOL_CARTRIDGES).or(SHOTGUN_CARTRIDGES);
     }
-
-    protected Predicate<ItemStack> RIFLE_CARTRIDGES = (stack) -> {
-        return stack.getItem().isIn(rifleCartridge);
-    };
 
     protected Predicate<ItemStack> PAPER_RIFLE_CARTRIDGES = (stack) -> {
         return stack.getItem() == HammersAndLevers.riflePaperCartridgeItem;
@@ -220,9 +213,7 @@ public class FirearmBase extends Item {
         return stack.getItem() == HammersAndLevers.rifleCartridgeItem;
     };
 
-    protected Predicate<ItemStack> PISTOL_CARTRIDGES = (stack) -> {
-        return stack.getItem().isIn(pistolCartridge);
-    };
+    protected Predicate<ItemStack> RIFLE_CARTRIDGES = PAPER_RIFLE_CARTRIDGES.or(BRASS_RIFLE_CARTRIDGES);
 
     protected Predicate<ItemStack> PAPER_PISTOL_CARTRIDGES = (stack) -> {
         return stack.getItem() == HammersAndLevers.pistolPaperCartridgeItem;
@@ -232,7 +223,9 @@ public class FirearmBase extends Item {
         return stack.getItem() == HammersAndLevers.pistolCartridgeItem;
     };
 
+    protected Predicate<ItemStack> PISTOL_CARTRIDGES = PAPER_PISTOL_CARTRIDGES.or(BRASS_PISTOL_CARTRIDGES);
+
     protected Predicate<ItemStack> SHOTGUN_CARTRIDGES = (stack) -> {
-        return stack.getItem().isIn(shotgunCartridge);
+        return stack.getItem() == HammersAndLevers.shotgunShellItem;
     };
 }

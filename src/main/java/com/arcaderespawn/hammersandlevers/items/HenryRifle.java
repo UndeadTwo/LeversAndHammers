@@ -24,6 +24,7 @@ public class HenryRifle extends FirearmBase {
 
     @Override
     protected Predicate<ItemStack> getInventoryAmmoSearchPredicate() {
+        LOGGER.debug("Tried to find ammunition w/ Rifle Predicate");
         return BRASS_RIFLE_CARTRIDGES;
     }
 
